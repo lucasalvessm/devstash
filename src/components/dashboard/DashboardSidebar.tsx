@@ -2,18 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {
-  ChevronDown,
-  Code,
-  File,
-  Image as ImageIcon,
-  Link as LinkIcon,
-  Settings,
-  Sparkles,
-  StickyNote,
-  Terminal,
-  type LucideIcon,
-} from "lucide-react";
+import { ChevronDown, Settings } from "lucide-react";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -34,17 +23,8 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
+import { TYPE_ICONS } from "@/components/dashboard/type-icons";
 import { collections, currentUser, itemTypeCounts, itemTypes } from "@/lib/mock-data";
-
-const TYPE_ICONS: Record<string, LucideIcon> = {
-  Code,
-  Sparkles,
-  StickyNote,
-  Terminal,
-  Link: LinkIcon,
-  File,
-  Image: ImageIcon,
-};
 
 function typeSlug(name: string) {
   return `${name.toLowerCase()}s`;
