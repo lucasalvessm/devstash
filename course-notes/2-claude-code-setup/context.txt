@@ -1,0 +1,21 @@
+Context is everything the AI can "see"at any givin moment. 
+    - Messages in your conversation
+    - Any files you've referenced
+    - System instructions
+    - Its own responses
+
+Context window = what it can hold in memory at once
+
+Context engineering:
+The practice of strategically feeding the AI the right information so it can actually help you.
+
+Tokens
+Context windows and API pricing are measured in Tokens
+
+Hello ! my name is Lucas
+6 tokens (palavras)
+
+
+/context - to show the size of the context
+/clear - clear all the context
+/compact - compacts the context

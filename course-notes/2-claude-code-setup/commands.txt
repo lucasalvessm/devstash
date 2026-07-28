@@ -1,0 +1,35 @@
+Auth & Accounts
+    /login
+    /logout
+Project & Files
+    /init create CLAUDE.md file (context)
+    /memory - persistent project memory
+    /agents - manage custom AI agents
+    /hooks - manage hooks that run shell commands on events
+    /todos - list current todos
+Settings & Environments
+    /model - view and change models
+
+Context & Conversation Management
+    /context - visualize current context
+    /clear - clear current context from session
+    /compact - summarize/compress the conversation to free context
+    /usage - show plan and rate-limit status
+    /export - export conversation to file
+    /exit - exit
+
+Integration & plugins
+    /plugin - manage CC plugins
+    /mpc - manage MCP servers
+    /install-github-app - setup github Integration
+    /ide - Manage IDE integrations
+    /bashes - list & manage background bash tasks
+
+------------------------------------
+
+Personal Project Scoped
+    PROJECT_FOLDER/.claude/settings.local.json
+Project Scoped
+    PROJECT_FOLDER/.claude/settings.json (github repo)
+User/Global Scoped
+    ˜/.claude/settings.json
