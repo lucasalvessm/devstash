@@ -12,7 +12,9 @@ export default function DashboardLayout({
       <DashboardSidebar />
       <SidebarInset>
         <TopBar />
-        <div className="flex-1 p-6">{children}</div>
+        <div className="flex-1 p-6">
+          <div className="mx-auto w-full max-w-7xl">{children}</div>
+        </div>
       </SidebarInset>
     </SidebarProvider>
   );

@@ -9,10 +9,12 @@ test.describe("dashboard sidebar", () => {
 
     await page.goto("/dashboard");
 
-    await expect(page.getByText("Types")).toBeVisible();
+    const sidebar = page.locator('[data-slot="sidebar"]');
+
+    await expect(sidebar.getByText("Types")).toBeVisible();
     await expect(page.getByRole("link", { name: "Snippet", exact: true })).toBeVisible();
-    await expect(page.getByText("Collections")).toBeVisible();
-    await expect(page.getByText("Favorites")).toBeVisible();
+    await expect(sidebar.getByText("Collections")).toBeVisible();
+    await expect(sidebar.getByText("Favorites")).toBeVisible();
 
     expect(consoleErrors).toEqual([]);
   });
