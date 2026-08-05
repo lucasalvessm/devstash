@@ -19,11 +19,8 @@ test.describe("dashboard main content", () => {
     await expect(main.getByRole("heading", { name: "Collections" })).toBeVisible();
     await expect(main.getByRole("link", { name: /React Patterns/ })).toBeVisible();
 
-    const pinnedSection = main
-      .locator("section")
-      .filter({ has: page.getByRole("heading", { name: "Pinned" }) });
-    await expect(pinnedSection.getByRole("heading", { name: "Pinned" })).toBeVisible();
-    await expect(pinnedSection.getByRole("link", { name: /useAuth Hook/ })).toBeVisible();
+    // The seed data has no pinned items, so the Pinned section should not render.
+    await expect(main.getByRole("heading", { name: "Pinned" })).toHaveCount(0);
 
     const recentSection = main
       .locator("section")

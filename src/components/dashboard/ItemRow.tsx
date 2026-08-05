@@ -4,26 +4,26 @@ import { Pin, Star } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { TYPE_ICONS } from "@/components/dashboard/type-icons";
-import { itemTypesById, type Item } from "@/lib/mock-data";
+import type { ItemWithType } from "@/lib/db/items";
 
-function formatDate(dateString: string) {
-  return new Date(dateString).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+function formatDate(date: Date) {
+  return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
-export function ItemRow({ item }: { item: Item }) {
-  const type = itemTypesById[item.itemTypeId];
-  const Icon = type ? TYPE_ICONS[type.icon] : null;
+export function ItemRow({ item }: { item: ItemWithType }) {
+  const type = item.itemType;
+  const Icon = TYPE_ICONS[type.icon];
 
   return (
     <Link href={`/items/${item.id}`}>
       <Card
         className="border-l-4 transition-colors hover:bg-muted/40"
-        style={{ borderLeftColor: type?.color }}
+        style={{ borderLeftColor: type.color }}
       >
         <CardContent className="flex items-center gap-3">
           <div
             className="flex size-9 shrink-0 items-center justify-center rounded-lg"
-            style={{ backgroundColor: type ? `${type.color}1a` : undefined, color: type?.color }}
+            style={{ backgroundColor: `${type.color}1a`, color: type.color }}
           >
             {Icon && <Icon className="size-4.5" />}
           </div>
