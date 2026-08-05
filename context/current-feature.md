@@ -1,25 +1,26 @@
 # Current Feature
 
-Prisma + Neon PostgreSQL Setup
+Seed Data Script
 
 ## Status
 
 <!-- Not Started|In Progress|Completed -->
 
-Completed
+Not Started
 
 ## Goals
 
-Set up Prisma ORM with Neon PostgreSQL database (see @context/features/database-spec.md).
+Create a seed script (`prisma/seed.ts`) to populate the database with sample data for development and demos (see @context/features/seed-spec.md).
 
-- Use Neon PostgreSQL (serverless)
-- Create initial schema based on data models in project-overview.md (this will evolve)
-- Include NextAuth models (Account, Session, VerificationToken)
-- Add appropriate indexes and cascade deletes
-- Always use migrations (dev branch DATABASE_URL first, then promote to production branch) — never push directly unless specified
-- Use Prisma 7 (breaking changes vs. earlier versions — read the upgrade guide before implementing)
+- Seed a demo User (demo@devstash.io / "Demo User", password hashed with bcryptjs at 12 rounds, isPro: false, emailVerified set to current date)
+- Seed the 7 system ItemTypes (snippet, prompt, command, note, file, image, link) with their Lucide icon names and colors, all `isSystem: true`
+- Seed 5 Collections with items as specified: React Patterns (3 TS snippets), AI Workflows (3 prompts), DevOps (1 snippet, 1 command, 2 real doc links), Terminal Commands (4 commands), Design Resources (4 real links)
 
 ## Notes
+
+References: @context/features/seed-spec.md, @context/project-overview.md, @context/coding-standards.md
+
+## Previous Feature: Prisma + Neon PostgreSQL Setup
 
 We will have a development branch that we work on (in DATABASE_URL) and then a production branch. We ALWAYS create migrations and never push directly unless specified.
 
