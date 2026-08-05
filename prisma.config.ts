@@ -7,6 +7,7 @@ export default defineConfig({
   schema: "prisma/schema.prisma",
   migrations: {
     path: "prisma/migrations",
+    seed: "tsx prisma/seed.ts",
   },
   // Prisma CLI (migrate, studio, db pull, ...) uses the direct/unpooled Neon connection —
   // the app itself connects through the pooled DATABASE_URL via the Neon driver adapter
