@@ -1,9 +1,11 @@
 import Link from "next/link";
 
 import { CollectionCard } from "@/components/dashboard/CollectionCard";
-import { collections } from "@/lib/mock-data";
+import { getRecentCollections } from "@/lib/db/collections";
 
-export function CollectionsSection() {
+export async function CollectionsSection() {
+  const collections = await getRecentCollections();
+
   return (
     <section className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
