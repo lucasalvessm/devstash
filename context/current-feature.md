@@ -1,6 +1,6 @@
 # Current Feature
 
-Dashboard Collections
+Dashboard Items
 
 ## Status
 
@@ -9,6 +9,26 @@ Dashboard Collections
 Completed
 
 ## Goals
+
+Replace the dummy item data displayed in the main area of the dashboard (right side), with actual data from the database. This includes both pinned and recent items. It should look how it does now, but instead of using data from @src/lib/mock-data.ts, it should be from our Neon database using Prisma.
+
+If there are no pinned items, nothing should display there.
+
+- Create src/lib/db/items.ts with data fetching functions
+- Fetch items directly in server component
+- Item card icon/border derived from the item type
+- Display item type tags and anything else currently there. You can also reference the screenshot if needed
+- Update collection stats display
+
+Check the @context/screenshots/dashboard-ui-main.png screenshot if needed, but layout and design is already there.
+
+## Notes
+
+Added `src/lib/db/items.ts` with `getPinnedItems()`, `getRecentItems(limit = 10)`, and `getItemStats()`, following the same pattern as `collections.ts` (scoped to the seeded demo user by email, `itemType` and `tags` included and mapped to a flat `ItemWithType` shape). Also added `getCollectionStats()` to `collections.ts` since the stats cards needed real collection counts too. `ItemRow` now takes `ItemWithType` instead of the mock `Item`, and `PinnedItemsSection`/`RecentItemsSection`/`StatsCards` became async server components calling these fetchers directly — `PinnedItemsSection` still returns `null` when there are no pinned items, matching the seed data (which has no items marked pinned or favorite, so that section and the favorite counts render empty/zero, which is correct). Sidebar remains mock data (still out of scope). Updated the existing `e2e/dashboard-main.spec.ts`, which asserted mock-data pinned items (`useAuth Hook`) that no longer exist in the real seed — it now asserts the Pinned heading is absent instead. Verified with a Playwright screenshot against the dev server (no console errors) and `npm run test:e2e` (4/4 passing); `npm run build` and `npm run lint` both pass.
+
+References: @context/features/dashboard-items-spec.md, @context/project-overview.md, @context/coding-standards.md
+
+## Previous Feature: Dashboard Collections
 
 Replace the dummy collection data displayed in the main area of the dashboard (right side), with actual data from the database. It should look how it does now with the 6 cards of recent collections, but instead of using data from @src/lib/mock-data.ts, it should be from our Neon database using Prisma.
 
@@ -21,23 +41,9 @@ Do not add the items underneath yet. We will do that later.
 - Keep the current design. You can also reference the screenshot
 - Update collection stats display
 
-## Notes
-
 Added `src/lib/db/collections.ts` with `getRecentCollections(limit = 6)`, which queries `Collection` (with `items.item.itemType` included) for the demo user, ordered by `createdAt desc`, and computes per-collection item counts and a type breakdown sorted by frequency (`dominantType` = most-used `ItemType`, used for the card's left border; `types` = full list, used for the row of small icons). No auth is wired up yet, so the query is scoped by the seeded demo user's email (`demo@devstash.io`) as a stand-in until NextAuth is in place. `CollectionsSection` became an async server component calling this directly (no client fetch/loading state needed), and `CollectionCard` now takes the richer `CollectionWithStats` shape instead of the old mock `Collection` + `itemTypesById` lookup. The sidebar's collection lists are unchanged (still mock data) — out of scope per the spec, which called out only the main-area cards. Verified with a Playwright screenshot against the dev server: all 5 seeded collections render with correct item counts, border colors, and type icons, no console errors; `npm run build` and `npm run lint` both pass.
 
 References: @context/features/dashboard-collections-spec.md, @context/project-overview.md, @context/coding-standards.md
-
-## Previous Feature: Seed Data Script
-
-Create a seed script (`prisma/seed.ts`) to populate the database with sample data for development and demos (see @context/features/seed-spec.md).
-
-- Seed a demo User (demo@devstash.io / "Demo User", password hashed with bcryptjs at 12 rounds, isPro: false, emailVerified set to current date)
-- Seed the 7 system ItemTypes (snippet, prompt, command, note, file, image, link) with their Lucide icon names and colors, all `isSystem: true`
-- Seed 5 Collections with items as specified: React Patterns (3 TS snippets), AI Workflows (3 prompts), DevOps (1 snippet, 1 command, 2 real doc links), Terminal Commands (4 commands), Design Resources (4 real links)
-
-Added `prisma/seed.ts`, seeding the demo user (bcryptjs-hashed password, 12 rounds), the 7 system `ItemType`s, and 5 collections with 18 items total (React Patterns, AI Workflows, DevOps, Terminal Commands, Design Resources). The script is safe to re-run: the user and item types are upserted, and the demo user's collections/items are deleted and recreated each run (cascades clean up `ItemCollection`/`ItemTag`). `ItemType`'s `[userId, name]` unique constraint can't be used in a Prisma upsert `where` when `userId` is `null` (Prisma rejects `null` in a compound-unique lookup), so system types use a `findFirst` + `create`/`update` pattern instead. Wired as `migrations.seed` in `prisma.config.ts` (so `prisma migrate reset` runs it) and as `npm run db:seed`. Added `bcryptjs` as a dependency.
-
-References: @context/features/seed-spec.md, @context/project-overview.md, @context/coding-standards.md
 
 ## History
 
@@ -50,3 +56,4 @@ References: @context/features/seed-spec.md, @context/project-overview.md, @conte
 - Prisma + Neon PostgreSQL Setup: added `prisma/schema.prisma` (User/ItemType/Item/Collection/ItemCollection/Tag/ItemTag plus NextAuth's Account/Session/VerificationToken), `prisma.config.ts`, and a `src/lib/prisma.ts` client singleton using `@prisma/adapter-neon`. Installed Prisma 7 (`prisma`, `@prisma/client`, `@prisma/adapter-neon`, `dotenv`) and worked through its breaking changes (custom `prisma-client` generator output, connection URLs moved out of `schema.prisma` into `prisma.config.ts`/the driver adapter). Mapped every table/column to singular snake_case via `@map`/`@@map` and replaced the implicit Item↔Tag many-to-many with an explicit `ItemTag` join model. Created and applied migrations against a real Neon database. Added `scripts/test-db.ts` (a standalone DB connectivity check, run via `npx tsx` since Prisma's generated client uses bundler-style extension-less imports plain `node` can't resolve) and a `db:studio` npm script.
 - Seed Data Script: added `prisma/seed.ts`, seeding the demo user, 7 system item types, and 5 collections (18 items) per @context/features/seed-spec.md. Wired as `migrations.seed` in `prisma.config.ts` and as `npm run db:seed`. Added `bcryptjs` for password hashing.
 - Dashboard Collections: added `src/lib/db/collections.ts` (`getRecentCollections`) and wired `CollectionsSection`/`CollectionCard` to fetch real Collection/Item/ItemType data from Neon via Prisma instead of `mock-data.ts`, computing item counts and a dominant-type border color + per-type icon row from actual seeded items. Scoped to the demo user by email until auth exists. Sidebar collection lists remain mock data (out of scope).
+- Dashboard Items: added `src/lib/db/items.ts` (`getPinnedItems`, `getRecentItems`, `getItemStats`) and `getCollectionStats` in `collections.ts`, wiring `PinnedItemsSection`/`RecentItemsSection`/`StatsCards`/`ItemRow` to real Item/ItemType/Tag data from Neon instead of `mock-data.ts`. Pinned section still hides itself when empty (true of the current seed data). Updated `e2e/dashboard-main.spec.ts` to match real seeded data instead of mock titles.

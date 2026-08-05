@@ -1,7 +1,8 @@
 import { Boxes, Folder, Heart, Star, type LucideIcon } from "lucide-react";
 
 import { Card, CardContent } from "@/components/ui/card";
-import { collections, items, itemTypeCounts } from "@/lib/mock-data";
+import { getCollectionStats } from "@/lib/db/collections";
+import { getItemStats } from "@/lib/db/items";
 
 interface StatTileProps {
   icon: LucideIcon;
@@ -29,21 +30,18 @@ function StatTile({ icon: Icon, label, value, color }: StatTileProps) {
   );
 }
 
-export function StatsCards() {
-  const totalItems = Object.values(itemTypeCounts).reduce((sum, count) => sum + count, 0);
-  const totalCollections = collections.length;
-  const favoriteItems = items.filter((item) => item.isFavorite).length;
-  const favoriteCollections = collections.filter((collection) => collection.isFavorite).length;
+export async function StatsCards() {
+  const [itemStats, collectionStats] = await Promise.all([getItemStats(), getCollectionStats()]);
 
   return (
     <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-      <StatTile icon={Boxes} label="Items" value={totalItems} color="#3b82f6" />
-      <StatTile icon={Folder} label="Collections" value={totalCollections} color="#10b981" />
-      <StatTile icon={Star} label="Favorite items" value={favoriteItems} color="#f59e0b" />
+      <StatTile icon={Boxes} label="Items" value={itemStats.total} color="#3b82f6" />
+      <StatTile icon={Folder} label="Collections" value={collectionStats.total} color="#10b981" />
+      <StatTile icon={Star} label="Favorite items" value={itemStats.favorite} color="#f59e0b" />
       <StatTile
         icon={Heart}
         label="Favorite collections"
-        value={favoriteCollections}
+        value={collectionStats.favorite}
         color="#ec4899"
       />
     </div>
