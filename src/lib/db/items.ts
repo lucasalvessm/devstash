@@ -73,3 +73,36 @@ export async function getItemStats(): Promise<{ total: number; favorite: number 
 
   return { total, favorite };
 }
+
+export interface ItemTypeWithCount {
+  id: string;
+  name: string;
+  icon: string;
+  color: string;
+  itemCount: number;
+}
+
+const SYSTEM_ITEM_TYPE_ORDER = ["snippet", "prompt", "command", "note", "file", "image", "link"];
+
+export async function getSystemItemTypesWithCounts(): Promise<ItemTypeWithCount[]> {
+  const types = await prisma.itemType.findMany({
+    where: { isSystem: true },
+    include: {
+      _count: {
+        select: { items: { where: { user: { email: DEMO_USER_EMAIL } } } },
+      },
+    },
+  });
+
+  types.sort(
+    (a, b) => SYSTEM_ITEM_TYPE_ORDER.indexOf(a.name) - SYSTEM_ITEM_TYPE_ORDER.indexOf(b.name),
+  );
+
+  return types.map((type) => ({
+    id: type.id,
+    name: type.name,
+    icon: type.icon,
+    color: type.color,
+    itemCount: type._count.items,
+  }));
+}

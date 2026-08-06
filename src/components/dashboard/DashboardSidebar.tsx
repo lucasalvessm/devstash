@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ChevronDown, Settings } from "lucide-react";
+import { ChevronDown, Settings, Star } from "lucide-react";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -24,10 +24,16 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { TYPE_ICONS } from "@/components/dashboard/type-icons";
-import { collections, currentUser, itemTypeCounts, itemTypes } from "@/lib/mock-data";
+import type { CollectionWithStats } from "@/lib/db/collections";
+import type { ItemTypeWithCount } from "@/lib/db/items";
+import { currentUser } from "@/lib/mock-data";
 
 function typeSlug(name: string) {
   return `${name.toLowerCase()}s`;
+}
+
+function capitalize(name: string) {
+  return name.charAt(0).toUpperCase() + name.slice(1);
 }
 
 function initials(name: string) {
@@ -38,10 +44,18 @@ function initials(name: string) {
     .toUpperCase();
 }
 
-export function DashboardSidebar() {
+interface DashboardSidebarProps {
+  itemTypes: ItemTypeWithCount[];
+  favoriteCollections: CollectionWithStats[];
+  recentCollections: CollectionWithStats[];
+}
+
+export function DashboardSidebar({
+  itemTypes,
+  favoriteCollections,
+  recentCollections,
+}: DashboardSidebarProps) {
   const pathname = usePathname();
-  const favoriteCollections = collections.filter((collection) => collection.isFavorite);
-  const recentCollections = collections.filter((collection) => !collection.isFavorite);
 
   return (
     <Sidebar collapsible="icon">
@@ -58,25 +72,23 @@ export function DashboardSidebar() {
             <CollapsibleContent>
               <SidebarGroupContent>
                 <SidebarMenu>
-                  {itemTypes
-                    .filter((type) => type.isSystem)
-                    .map((type) => {
-                      const Icon = TYPE_ICONS[type.icon];
-                      const href = `/items/${typeSlug(type.name)}`;
-                      return (
-                        <SidebarMenuItem key={type.id}>
-                          <SidebarMenuButton
-                            render={<Link href={href} />}
-                            isActive={pathname === href}
-                            tooltip={type.name}
-                          >
-                            <Icon style={{ color: type.color }} />
-                            <span>{type.name}</span>
-                          </SidebarMenuButton>
-                          <SidebarMenuBadge>{itemTypeCounts[type.id] ?? 0}</SidebarMenuBadge>
-                        </SidebarMenuItem>
-                      );
-                    })}
+                  {itemTypes.map((type) => {
+                    const Icon = TYPE_ICONS[type.icon];
+                    const href = `/items/${typeSlug(type.name)}`;
+                    return (
+                      <SidebarMenuItem key={type.id}>
+                        <SidebarMenuButton
+                          render={<Link href={href} />}
+                          isActive={pathname === href}
+                          tooltip={capitalize(type.name)}
+                        >
+                          <Icon style={{ color: type.color }} />
+                          <span>{capitalize(type.name)}</span>
+                        </SidebarMenuButton>
+                        <SidebarMenuBadge>{type.itemCount}</SidebarMenuBadge>
+                      </SidebarMenuItem>
+                    );
+                  })}
                 </SidebarMenu>
               </SidebarGroupContent>
             </CollapsibleContent>
@@ -106,6 +118,7 @@ export function DashboardSidebar() {
                           isActive={pathname === `/collections/${collection.id}`}
                           tooltip={collection.name}
                         >
+                          <Star className="size-3.5 shrink-0 fill-amber-400 text-amber-400" />
                           <span>{collection.name}</span>
                         </SidebarMenuButton>
                         <SidebarMenuBadge>{collection.itemCount}</SidebarMenuBadge>
@@ -128,6 +141,12 @@ export function DashboardSidebar() {
                           isActive={pathname === `/collections/${collection.id}`}
                           tooltip={collection.name}
                         >
+                          <span
+                            className="size-2.5 shrink-0 rounded-full"
+                            style={{
+                              backgroundColor: collection.dominantType?.color ?? "var(--muted-foreground)",
+                            }}
+                          />
                           <span>{collection.name}</span>
                         </SidebarMenuButton>
                         <SidebarMenuBadge>{collection.itemCount}</SidebarMenuBadge>
@@ -136,6 +155,20 @@ export function DashboardSidebar() {
                   </SidebarMenu>
                 </SidebarGroupContent>
               )}
+
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      render={<Link href="/collections" />}
+                      isActive={pathname === "/collections"}
+                      className="text-sidebar-foreground/60"
+                    >
+                      <span>View all collections</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                </SidebarMenu>
+              </SidebarGroupContent>
             </CollapsibleContent>
           </SidebarGroup>
         </Collapsible>
