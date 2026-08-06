@@ -13,8 +13,9 @@ test.describe("dashboard sidebar", () => {
 
     await expect(sidebar.getByText("Types")).toBeVisible();
     await expect(page.getByRole("link", { name: "Snippet", exact: true })).toBeVisible();
-    await expect(sidebar.getByText("Collections")).toBeVisible();
-    await expect(sidebar.getByText("Favorites")).toBeVisible();
+    await expect(sidebar.getByRole("button", { name: "Collections" })).toBeVisible();
+    await expect(sidebar.getByText("Recent")).toBeVisible();
+    await expect(sidebar.getByRole("link", { name: "View all collections" })).toBeVisible();
 
     expect(consoleErrors).toEqual([]);
   });
