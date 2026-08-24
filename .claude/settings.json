@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:www.prisma.io)",
+      "Bash(npm install *)",
+      "Bash(npx prisma *)",
+      "Bash(rm -rf .agents .windsurf skills-lock.json)",
+      "Bash(rm -rf .claude/skills)",
+      "Bash(git check-ignore *)",
+      "WebFetch(domain:pris.ly)",
+      "Bash(node -e \"console.log\\(process.version\\)\")",
+      "Bash(echo 'const x: number = 5; console.log\\(x\\);')",
+      "Bash(node /tmp/ts-check.ts)",
+      "Bash(rm -f /tmp/ts-check.ts)",
+      "Bash(node scripts/test-db.ts)",
+      "Bash(nohup npm run dev)",
+      "Bash(disown)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:3000/dashboard)"
+    ]
+  }
+}
