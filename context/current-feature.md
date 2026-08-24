@@ -1,14 +1,25 @@
-# Current Feature
-
-Stats & Sidebar
+# Current Feature: Add Pro Badge to Sidebar
 
 ## Status
 
 <!-- Not Started|In Progress|Completed -->
 
-Completed
+In Progress
 
 ## Goals
+
+- Add a "PRO" badge to the File and Image item types in the sidebar
+- Use the shadcn/ui Badge component
+- Badge text is uppercase ("PRO")
+- Keep the badge visually clean and subtle (not loud/attention-grabbing)
+
+## Notes
+
+File and Image are the two Pro-only item types (per @context/project-overview.md monetization section — file/image uploads are gated behind Pro). The badge should mark them in the sidebar's item type list, styled subtly rather than as a strong call-to-action.
+
+References: @context/features/add-pro-badge-sidebar.md, @src/components/dashboard/DashboardSidebar.tsx, @context/coding-standards.md
+
+## Previous Feature: Stats & Sidebar
 
 Show the stats in the main area from the data in the database instead of the @src/lib/mock-data.ts file.
 
@@ -20,29 +31,9 @@ Show the system item types in the sidebar and the actual collection data from th
 - Keep the star icons for favorite collections but for recents, each collection should show a colored circle based on the most-used item type in that collection
 - Create @src/lib/db/items.ts and add the database functions. Use the collections file for reference if needed
 
-## Notes
-
 The main-area stats cards were already wired to real data as part of the previous Dashboard Items feature (`getItemStats`/`getCollectionStats`), so this feature's remaining scope was the sidebar. Added `getSystemItemTypesWithCounts()` to `src/lib/db/items.ts` (system `ItemType`s with a per-type item count scoped to the demo user) and `getSidebarCollections()` to `src/lib/db/collections.ts` (favorite collections plus the 5 most recent non-favorite ones), refactoring the existing per-collection type-breakdown logic in `collections.ts` into a shared `toCollectionWithStats` helper reused by both `getRecentCollections` and the new function. `DashboardSidebar` changed from reading `mock-data.ts` to receiving `itemTypes`/`favoriteCollections`/`recentCollections` as props (it stays a client component for `usePathname` active-link state, so `DashboardLayout` became an async server component that fetches this data and passes it down). Item type names are stored lowercase in the seed (`"snippet"`, not `"Snippet"`), so the sidebar now capitalizes them for display. Favorite collections keep the amber star icon; recent (non-favorite) collections show a small circle colored by their dominant item type instead. Added a "View all collections" link below the list, pointing to `/collections` (that page doesn't exist yet — out of scope here, same as the per-type `/items/[typename]` pages, both currently 404). The seeded demo data has zero favorite collections, so the sidebar's Favorites group renders empty/hidden, matching the same empty-state pattern already used for pinned items. `currentUser` in the sidebar footer remains mock data (not mentioned in the spec). `getSystemItemTypesWithCounts()` also sorts the results by an explicit `SYSTEM_ITEM_TYPE_ORDER` list (snippet, prompt, command, note, file, image, link) instead of relying on incidental DB row order, per a follow-up request to guarantee that display order in the sidebar. Updated `e2e/dashboard.spec.ts`, which asserted a "Favorites" group and a text match on "Collections" that became ambiguous once the "View all collections" link was added — switched to a role-scoped locator for the section heading and asserted "Recent" instead of "Favorites". Verified with a Playwright screenshot against the dev server (no console errors, item type counts sum to the total items stat, colored dots match each collection's dominant type) and `npm run test:e2e` (4/4 passing); `npm run build` and `npm run lint` both pass.
 
 References: @context/features/stats-sidebar-spec.md, @src/lib/db/collections.ts, @context/project-overview.md, @context/coding-standards.md
-
-## Previous Feature: Dashboard Items
-
-Replace the dummy item data displayed in the main area of the dashboard (right side), with actual data from the database. This includes both pinned and recent items. It should look how it does now, but instead of using data from @src/lib/mock-data.ts, it should be from our Neon database using Prisma.
-
-If there are no pinned items, nothing should display there.
-
-- Create src/lib/db/items.ts with data fetching functions
-- Fetch items directly in server component
-- Item card icon/border derived from the item type
-- Display item type tags and anything else currently there. You can also reference the screenshot if needed
-- Update collection stats display
-
-Check the @context/screenshots/dashboard-ui-main.png screenshot if needed, but layout and design is already there.
-
-Added `src/lib/db/items.ts` with `getPinnedItems()`, `getRecentItems(limit = 10)`, and `getItemStats()`, following the same pattern as `collections.ts` (scoped to the seeded demo user by email, `itemType` and `tags` included and mapped to a flat `ItemWithType` shape). Also added `getCollectionStats()` to `collections.ts` since the stats cards needed real collection counts too. `ItemRow` now takes `ItemWithType` instead of the mock `Item`, and `PinnedItemsSection`/`RecentItemsSection`/`StatsCards` became async server components calling these fetchers directly — `PinnedItemsSection` still returns `null` when there are no pinned items, matching the seed data (which has no items marked pinned or favorite, so that section and the favorite counts render empty/zero, which is correct). Sidebar remains mock data (still out of scope). Updated the existing `e2e/dashboard-main.spec.ts`, which asserted mock-data pinned items (`useAuth Hook`) that no longer exist in the real seed — it now asserts the Pinned heading is absent instead. Verified with a Playwright screenshot against the dev server (no console errors) and `npm run test:e2e` (4/4 passing); `npm run build` and `npm run lint` both pass.
-
-References: @context/features/dashboard-items-spec.md, @context/project-overview.md, @context/coding-standards.md
 
 ## History
 

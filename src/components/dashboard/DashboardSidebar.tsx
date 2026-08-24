@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { ChevronDown, Settings, Star } from "lucide-react";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Collapsible,
@@ -35,6 +36,8 @@ function typeSlug(name: string) {
 function capitalize(name: string) {
   return name.charAt(0).toUpperCase() + name.slice(1);
 }
+
+const PRO_ITEM_TYPES = new Set(["file", "image"]);
 
 function initials(name: string) {
   return name
@@ -83,7 +86,15 @@ export function DashboardSidebar({
                           tooltip={capitalize(type.name)}
                         >
                           <Icon style={{ color: type.color }} />
-                          <span>{capitalize(type.name)}</span>
+                          <span className="truncate">{capitalize(type.name)}</span>
+                          {PRO_ITEM_TYPES.has(type.name) && (
+                            <Badge
+                              variant="outline"
+                              className="h-4 shrink-0 rounded-sm border-sidebar-border px-1 text-[0.6rem] font-medium tracking-wide text-sidebar-foreground/50 group-data-[collapsible=icon]:hidden"
+                            >
+                              PRO
+                            </Badge>
+                          )}
                         </SidebarMenuButton>
                         <SidebarMenuBadge>{type.itemCount}</SidebarMenuBadge>
                       </SidebarMenuItem>
