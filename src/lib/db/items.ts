@@ -1,8 +1,5 @@
+import { getCurrentUserId } from "@/lib/current-user";
 import { prisma } from "@/lib/prisma";
-
-// No auth is wired up yet, so every query is scoped to the seeded demo user for now.
-// Swap this for the authenticated user's id once NextAuth is in place.
-const DEMO_USER_EMAIL = "demo@devstash.io";
 
 export interface ItemItemType {
   id: string;
@@ -45,8 +42,10 @@ function toItemWithType(item: {
 }
 
 export async function getPinnedItems(): Promise<ItemWithType[]> {
+  const userId = await getCurrentUserId();
+
   const items = await prisma.item.findMany({
-    where: { user: { email: DEMO_USER_EMAIL }, isPinned: true },
+    where: { userId, isPinned: true },
     orderBy: { createdAt: "desc" },
     include: { itemType: true, tags: { include: { tag: true } } },
   });
@@ -55,8 +54,10 @@ export async function getPinnedItems(): Promise<ItemWithType[]> {
 }
 
 export async function getRecentItems(limit = 10): Promise<ItemWithType[]> {
+  const userId = await getCurrentUserId();
+
   const items = await prisma.item.findMany({
-    where: { user: { email: DEMO_USER_EMAIL } },
+    where: { userId },
     orderBy: { createdAt: "desc" },
     take: limit,
     include: { itemType: true, tags: { include: { tag: true } } },
@@ -66,9 +67,11 @@ export async function getRecentItems(limit = 10): Promise<ItemWithType[]> {
 }
 
 export async function getItemStats(): Promise<{ total: number; favorite: number }> {
+  const userId = await getCurrentUserId();
+
   const [total, favorite] = await Promise.all([
-    prisma.item.count({ where: { user: { email: DEMO_USER_EMAIL } } }),
-    prisma.item.count({ where: { user: { email: DEMO_USER_EMAIL }, isFavorite: true } }),
+    prisma.item.count({ where: { userId } }),
+    prisma.item.count({ where: { userId, isFavorite: true } }),
   ]);
 
   return { total, favorite };
@@ -85,11 +88,13 @@ export interface ItemTypeWithCount {
 const SYSTEM_ITEM_TYPE_ORDER = ["snippet", "prompt", "command", "note", "file", "image", "link"];
 
 export async function getSystemItemTypesWithCounts(): Promise<ItemTypeWithCount[]> {
+  const userId = await getCurrentUserId();
+
   const types = await prisma.itemType.findMany({
     where: { isSystem: true },
     include: {
       _count: {
-        select: { items: { where: { user: { email: DEMO_USER_EMAIL } } } },
+        select: { items: { where: { userId } } },
       },
     },
   });

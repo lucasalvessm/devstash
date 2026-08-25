@@ -1,8 +1,6 @@
+import { Prisma } from "@/generated/prisma/client";
+import { getCurrentUserId } from "@/lib/current-user";
 import { prisma } from "@/lib/prisma";
-
-// No auth is wired up yet, so every query is scoped to the seeded demo user for now.
-// Swap this for the authenticated user's id once NextAuth is in place.
-const DEMO_USER_EMAIL = "demo@devstash.io";
 
 export interface CollectionItemType {
   id: string;
@@ -21,97 +19,146 @@ export interface CollectionWithStats {
   types: CollectionItemType[];
 }
 
-type CollectionWithItems = {
+interface CollectionBase {
   id: string;
   name: string;
   description: string | null;
   isFavorite: boolean;
-  items: { item: { itemType: CollectionItemType } }[];
-};
+}
 
-function toCollectionWithStats(collection: CollectionWithItems): CollectionWithStats {
-  const typeCounts = new Map<string, { type: CollectionItemType; count: number }>();
+interface CollectionStats {
+  itemCount: number;
+  dominantType: CollectionItemType | null;
+  types: CollectionItemType[];
+}
 
-  for (const { item } of collection.items) {
-    const existing = typeCounts.get(item.itemType.id);
-    if (existing) {
-      existing.count += 1;
+interface CollectionTypeCountRow {
+  collectionId: string;
+  typeId: string;
+  typeName: string;
+  typeIcon: string;
+  typeColor: string;
+  count: number;
+}
+
+const EMPTY_STATS: CollectionStats = { itemCount: 0, dominantType: null, types: [] };
+
+const COLLECTION_SELECT = {
+  id: true,
+  name: true,
+  description: true,
+  isFavorite: true,
+} as const;
+
+// Computes itemCount + per-type breakdown for a batch of collections via a
+// grouped count query, instead of loading every item row into JS to tally them.
+async function getStatsByCollectionId(
+  collectionIds: string[],
+): Promise<Map<string, CollectionStats>> {
+  if (collectionIds.length === 0) return new Map();
+
+  const rows = await prisma.$queryRaw<CollectionTypeCountRow[]>(Prisma.sql`
+    SELECT
+      ic.collection_id AS "collectionId",
+      it.id AS "typeId",
+      it.name AS "typeName",
+      it.icon AS "typeIcon",
+      it.color AS "typeColor",
+      COUNT(*)::int AS "count"
+    FROM item_collection ic
+    JOIN item i ON i.id = ic.item_id
+    JOIN item_type it ON it.id = i.item_type_id
+    WHERE ic.collection_id IN (${Prisma.join(collectionIds)})
+    GROUP BY ic.collection_id, it.id, it.name, it.icon, it.color
+  `);
+
+  const rowsByCollection = new Map<string, CollectionTypeCountRow[]>();
+  for (const row of rows) {
+    const list = rowsByCollection.get(row.collectionId);
+    if (list) {
+      list.push(row);
     } else {
-      typeCounts.set(item.itemType.id, {
-        type: {
-          id: item.itemType.id,
-          name: item.itemType.name,
-          icon: item.itemType.icon,
-          color: item.itemType.color,
-        },
-        count: 1,
-      });
+      rowsByCollection.set(row.collectionId, [row]);
     }
   }
 
-  const types = [...typeCounts.values()]
-    .sort((a, b) => b.count - a.count)
-    .map((entry) => entry.type);
+  const stats = new Map<string, CollectionStats>();
+  for (const [collectionId, typeRows] of rowsByCollection) {
+    const types = [...typeRows]
+      .sort((a, b) => b.count - a.count)
+      .map((row) => ({ id: row.typeId, name: row.typeName, icon: row.typeIcon, color: row.typeColor }));
 
-  return {
-    id: collection.id,
-    name: collection.name,
-    description: collection.description,
-    isFavorite: collection.isFavorite,
-    itemCount: collection.items.length,
-    dominantType: types[0] ?? null,
-    types,
-  };
+    stats.set(collectionId, {
+      itemCount: typeRows.reduce((sum, row) => sum + row.count, 0),
+      dominantType: types[0] ?? null,
+      types,
+    });
+  }
+
+  return stats;
 }
 
-const COLLECTION_WITH_ITEMS_INCLUDE = {
-  items: {
-    include: {
-      item: {
-        include: { itemType: true },
-      },
-    },
-  },
-} as const;
+function toCollectionsWithStats(
+  collections: CollectionBase[],
+  stats: Map<string, CollectionStats>,
+): CollectionWithStats[] {
+  return collections.map((collection) => ({
+    ...collection,
+    ...(stats.get(collection.id) ?? EMPTY_STATS),
+  }));
+}
 
 export async function getRecentCollections(limit = 6): Promise<CollectionWithStats[]> {
+  const userId = await getCurrentUserId();
+
   const collections = await prisma.collection.findMany({
-    where: { user: { email: DEMO_USER_EMAIL } },
+    where: { userId },
     orderBy: { createdAt: "desc" },
     take: limit,
-    include: COLLECTION_WITH_ITEMS_INCLUDE,
+    select: COLLECTION_SELECT,
   });
 
-  return collections.map(toCollectionWithStats);
+  const stats = await getStatsByCollectionId(collections.map((collection) => collection.id));
+
+  return toCollectionsWithStats(collections, stats);
 }
 
 export async function getSidebarCollections(
   recentLimit = 5,
 ): Promise<{ favorites: CollectionWithStats[]; recent: CollectionWithStats[] }> {
+  const userId = await getCurrentUserId();
+
   const [favorites, recent] = await Promise.all([
     prisma.collection.findMany({
-      where: { user: { email: DEMO_USER_EMAIL }, isFavorite: true },
+      where: { userId, isFavorite: true },
       orderBy: { createdAt: "desc" },
-      include: COLLECTION_WITH_ITEMS_INCLUDE,
+      select: COLLECTION_SELECT,
     }),
     prisma.collection.findMany({
-      where: { user: { email: DEMO_USER_EMAIL }, isFavorite: false },
+      where: { userId, isFavorite: false },
       orderBy: { createdAt: "desc" },
       take: recentLimit,
-      include: COLLECTION_WITH_ITEMS_INCLUDE,
+      select: COLLECTION_SELECT,
     }),
   ]);
 
+  const stats = await getStatsByCollectionId([
+    ...favorites.map((collection) => collection.id),
+    ...recent.map((collection) => collection.id),
+  ]);
+
   return {
-    favorites: favorites.map(toCollectionWithStats),
-    recent: recent.map(toCollectionWithStats),
+    favorites: toCollectionsWithStats(favorites, stats),
+    recent: toCollectionsWithStats(recent, stats),
   };
 }
 
 export async function getCollectionStats(): Promise<{ total: number; favorite: number }> {
+  const userId = await getCurrentUserId();
+
   const [total, favorite] = await Promise.all([
-    prisma.collection.count({ where: { user: { email: DEMO_USER_EMAIL } } }),
-    prisma.collection.count({ where: { user: { email: DEMO_USER_EMAIL }, isFavorite: true } }),
+    prisma.collection.count({ where: { userId } }),
+    prisma.collection.count({ where: { userId, isFavorite: true } }),
   ]);
 
   return { total, favorite };
