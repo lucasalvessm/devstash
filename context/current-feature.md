@@ -1,54 +1,12 @@
-# Current Feature: Auth Setup - NextAuth + GitHub Provider (Phase 1)
+# Current Feature
 
 ## Status
 
-In Progress
+<!-- Not Started|In Progress|Completed -->
 
 ## Goals
 
-- Install NextAuth v5 (`next-auth@beta`) and `@auth/prisma-adapter`
-- Set up split auth config pattern for edge compatibility
-- Add GitHub OAuth provider
-- Protect `/dashboard/*` routes using Next.js 16 proxy
-- Redirect unauthenticated users to sign-in
-
 ## Notes
-
-Use NextAuth's default pages for testing (no custom `pages.signIn`).
-
-Files to create:
-1. `src/auth.config.ts` - Edge-compatible config (providers only, no adapter)
-2. `src/auth.ts` - Full config with Prisma adapter and JWT strategy
-3. `src/app/api/auth/[...nextauth]/route.ts` - Export handlers from auth.ts
-4. `src/proxy.ts` - Route protection with redirect logic
-5. `src/types/next-auth.d.ts` - Extend Session type with user.id
-
-Key gotchas (verify against Context7 for current conventions):
-- Use `next-auth@beta` (not `@latest`, which installs v4)
-- Proxy file must be at `src/proxy.ts` (same level as `app/`)
-- Use named export: `export const proxy = auth(...)`, not a default export
-- Use `session: { strategy: 'jwt' }` with the split config pattern
-- Don't set custom `pages.signIn` - use NextAuth's default page
-
-Environment variables needed: `AUTH_SECRET`, `AUTH_GITHUB_ID`, `AUTH_GITHUB_SECRET`
-
-Testing plan:
-1. Go to `/dashboard` - should redirect to sign-in
-2. Click "Sign in with GitHub"
-3. Verify redirect back to `/dashboard` after auth
-
-References:
-- @context/features/auth-phase-1-spec.md
-- https://authjs.dev/getting-started/installation#edge-compatibility
-- https://authjs.dev/getting-started/adapters/prisma
-
-## Previous Feature: Current-user helper + collection stats aggregation
-
-Fixes 3 issues found by a code-scanner audit of `src/lib/db/collections.ts` and `src/lib/db/items.ts`: over-fetching full item rows to compute collection stats in JS, a `DEMO_USER_EMAIL` const duplicated across both files, and queries filtering via `user: { email }` instead of the indexed `userId` FK.
-
-Added `src/lib/current-user.ts` with a single `getCurrentUserId()` helper (wrapped in React's `cache()` for per-request memoization), replacing the duplicated `DEMO_USER_EMAIL` const. Switched every query in `collections.ts`/`items.ts` to filter on `userId` directly. Replaced `COLLECTION_WITH_ITEMS_INCLUDE` + `toCollectionWithStats` with a `getStatsByCollectionId` helper that runs one grouped `$queryRaw` (joining `item_collection` → `item` → `item_type`, `GROUP BY` collection + type, ids passed through `Prisma.join`) to compute `itemCount`/`dominantType`/`types` in Postgres instead of loading every item row into JS. All exported types/function signatures kept unchanged, so no calling components needed changes. `npm run build`, `npm run lint`, and `npm run test:e2e` (4/4, unchanged, including specs that assert exact item counts) all pass.
-
-References: @context/features/current-user-and-collection-stats.md, @src/lib/current-user.ts, @src/lib/db/collections.ts, @src/lib/db/items.ts
 
 ## History
 
@@ -65,3 +23,4 @@ References: @context/features/current-user-and-collection-stats.md, @src/lib/cur
 - Stats & Sidebar: added `getSystemItemTypesWithCounts` in `items.ts` and `getSidebarCollections` in `collections.ts` (extracting a shared `toCollectionWithStats` helper), wiring `DashboardSidebar` to real ItemType/Collection data instead of `mock-data.ts` — item type links/counts, favorite collections (star icon) and recent collections (dominant-type colored circle), plus a new "View all collections" link to `/collections`. `DashboardLayout` became an async server component to fetch this data for the still-client-side `DashboardSidebar`. Main-area stats were already wired to real data in the prior feature. Updated `e2e/dashboard.spec.ts` for the new "View all collections" link and the empty Favorites group (no favorite collections in the seed).
 - Add Pro Badge to Sidebar: added a subtle "PRO" `Badge` next to the File and Image item types in `DashboardSidebar.tsx`, gated on a `PRO_ITEM_TYPES` set. No data/schema changes.
 - Current-User Helper + Collection Stats Aggregation: added `src/lib/current-user.ts` (`getCurrentUserId`, request-memoized via React `cache()`) to replace the `DEMO_USER_EMAIL` const duplicated in `src/lib/db/collections.ts`/`items.ts`, switched all queries in both files to filter on the indexed `userId` FK instead of `user: { email }`, and replaced `collections.ts`'s full-item-row fetch + in-JS tally with a single grouped `$queryRaw` (`getStatsByCollectionId`) that computes `itemCount`/`dominantType`/`types` in Postgres. No schema changes; exported types/signatures unchanged.
+- Auth Setup - NextAuth + GitHub Provider (Phase 1): added `next-auth@beta` + `@auth/prisma-adapter` with the split edge-compatible config pattern — `src/auth.config.ts` (GitHub provider only, edge-safe) and `src/auth.ts` (adds `PrismaAdapter`, `session: { strategy: "jwt" }`, and `jwt`/`session` callbacks that copy the user id onto the token/session). Added `src/app/api/auth/[...nextauth]/route.ts` exporting the handlers, `src/proxy.ts` (a separate edge NextAuth instance wrapping `auth()`, matcher on `/dashboard/:path*`) redirecting unauthenticated requests to the default `/api/auth/signin` page with `callbackUrl` preserved, and `src/types/next-auth.d.ts` extending `Session.user` with `id`. Used NextAuth's default sign-in/callback pages (no custom `pages.signIn`). `Account`/`Session`/`VerificationToken` Prisma models and `AUTH_SECRET`/`AUTH_GITHUB_ID`/`AUTH_GITHUB_SECRET` env vars already existed from earlier setup. Verified live in a browser: `/dashboard` redirects to sign-in with `callbackUrl` set, and clicking "Sign in with GitHub" redirects to GitHub's OAuth authorize endpoint with the correct `client_id`/`redirect_uri`. `npm run build` and `npm run lint` pass. `getCurrentUserId()` still hardcodes the demo user — wiring it to the real session is out of scope for this phase (credentials provider and custom UI land in phases 2-3).
