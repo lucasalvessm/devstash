@@ -11,6 +11,13 @@ Read the following to get the full context of the project:
 - @context/ai-interaction.md
 - @context/current-feature.md
 
+## Neon MCP Usage
+
+- Org: `Lucas` (`org-withered-sun-34798781`)
+- Project: `dev-stash` (`holy-glade-58004026`)
+- Default branch for all Neon MCP calls: **`development`** (`br-muddy-cloud-ay6kgh8h`)
+- Never run Neon MCP tools against the `production` branch (`br-damp-base-ay4gz102`) or any destructive Neon tool unless I explicitly say "production" in the request. If a request is ambiguous about which branch, assume `development` and say which branch you used.
+
 ## Commands
 
 - `npm run dev` — start the dev server (localhost:3000)
