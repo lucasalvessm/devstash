@@ -1,51 +1,12 @@
-# Current Feature: Auth UI - Sign In, Register & Sign Out (Phase 3)
+# Current Feature
 
 ## Status
 
-In Progress
+<!-- Not Started|In Progress|Completed -->
 
 ## Goals
 
-- Replace NextAuth's default pages with a custom `/sign-in` page
-- Add a custom `/register` page
-- Update the bottom-of-sidebar user footer with avatar, name, a sign-out dropdown, and a link to `/profile`
-
 ## Notes
-
-### Sign In Page (`/sign-in`)
-- Email and password input fields
-- "Sign in with GitHub" button
-- Link to register page
-- Form validation and error display
-
-### Register Page (`/register`)
-- Name, email, password, confirm password fields
-- Form validation (passwords match, email format)
-- Submit to `/api/auth/register`
-- Redirect to sign-in on success
-
-### Bottom of Sidebar
-- Display user avatar (GitHub image or initials fallback)
-- Display user name
-- Dropdown/up on avatar click with "Sign out" link
-- Clicking the icon should go to `/profile`
-
-### Avatar Logic
-- If user has `image` (from GitHub): use that
-- Otherwise: generate initials from name (e.g., "Brad Traversy" → "BT")
-- Create a reusable avatar component that handles both cases
-
-Testing plan:
-1. Go to `/sign-in` - verify custom page renders
-2. Sign in with GitHub - verify flow works
-3. Sign in with email/password - verify flow works
-4. Verify avatar shows in top bar (GitHub image or initials)
-5. Click avatar - verify dropdown appears
-6. Click "Sign out" - verify logout and redirect
-7. Go to `/register` - create new account - verify redirect to sign-in
-
-References:
-- @context/features/auth-phase-3-spec.md
 
 ## History
 
@@ -64,3 +25,4 @@ References:
 - Current-User Helper + Collection Stats Aggregation: added `src/lib/current-user.ts` (`getCurrentUserId`, request-memoized via React `cache()`) to replace the `DEMO_USER_EMAIL` const duplicated in `src/lib/db/collections.ts`/`items.ts`, switched all queries in both files to filter on the indexed `userId` FK instead of `user: { email }`, and replaced `collections.ts`'s full-item-row fetch + in-JS tally with a single grouped `$queryRaw` (`getStatsByCollectionId`) that computes `itemCount`/`dominantType`/`types` in Postgres. No schema changes; exported types/signatures unchanged.
 - Auth Setup - NextAuth + GitHub Provider (Phase 1): added `next-auth@beta` + `@auth/prisma-adapter` with the split edge-compatible config pattern — `src/auth.config.ts` (GitHub provider only, edge-safe) and `src/auth.ts` (adds `PrismaAdapter`, `session: { strategy: "jwt" }`, and `jwt`/`session` callbacks that copy the user id onto the token/session). Added `src/app/api/auth/[...nextauth]/route.ts` exporting the handlers, `src/proxy.ts` (a separate edge NextAuth instance wrapping `auth()`, matcher on `/dashboard/:path*`) redirecting unauthenticated requests to the default `/api/auth/signin` page with `callbackUrl` preserved, and `src/types/next-auth.d.ts` extending `Session.user` with `id`. Used NextAuth's default sign-in/callback pages (no custom `pages.signIn`). `Account`/`Session`/`VerificationToken` Prisma models and `AUTH_SECRET`/`AUTH_GITHUB_ID`/`AUTH_GITHUB_SECRET` env vars already existed from earlier setup. Verified live in a browser: `/dashboard` redirects to sign-in with `callbackUrl` set, and clicking "Sign in with GitHub" redirects to GitHub's OAuth authorize endpoint with the correct `client_id`/`redirect_uri`. `npm run build` and `npm run lint` pass. `getCurrentUserId()` still hardcodes the demo user — wiring it to the real session is out of scope for this phase (credentials provider and custom UI land in phases 2-3).
 - Auth Credentials - Email/Password Provider (Phase 2): added a `Credentials` provider alongside GitHub — a `authorize: () => null` placeholder in the edge-safe `src/auth.config.ts`, overridden in `src/auth.ts` with real validation (Zod-parsed credentials, `prisma.user.findUnique` by email, `bcrypt.compare` against the stored hash, returning only `{ id, name, email, image }` so the password hash never flows into the JWT/session). Added `src/app/api/auth/register/route.ts` (`POST /api/auth/register`) validating `name`/`email`/`password`/`confirmPassword` with Zod (including a password-match `.refine`), checking for an existing user, hashing with `bcryptjs` (12 rounds), and returning `{ success, data|error }` with 201/400/409 status codes; malformed JSON bodies are caught and return 400 instead of a raw 500. Installed `zod` (new dependency, per the project's input-validation standard) and used `z.email()` instead of the deprecated `.email()` string method (zod v4). `User.password` already existed on the schema from earlier setup, so no migration was needed. Verified live in a browser/curl: registration (success, duplicate email, mismatched passwords, malformed body), credentials sign-in redirecting to `/dashboard`, and GitHub OAuth still redirecting correctly to GitHub's authorize endpoint. `npm run build` and `npm run lint` pass.
+- Auth UI - Sign In, Register & Sign Out (Phase 3): replaced NextAuth's default pages with custom `/sign-in` (GitHub button + email/password form, inline error display via `?error=`) and `/register` (name/email/password/confirm, client-side password-match check, posts to `/api/auth/register`, redirects to `/sign-in` on success) pages, both built on server actions (`signInWithCredentials`, `signInWithGitHub`, `signOutAction` in `src/actions/auth.ts`) wrapping NextAuth's `signIn`/`signOut`. Set `pages: { signIn: "/sign-in" }` in `auth.config.ts` and updated `proxy.ts`'s redirect target accordingly. Added `src/components/auth/UserAvatar.tsx` (GitHub image or initials fallback) and wired the sidebar footer (`DashboardSidebar.tsx`) to the real signed-in user via `auth()` in `DashboardLayout` — avatar/name/email, a dropdown with "Sign out", and a separate button linking to `/profile` (not yet built, matching the existing `/collections` forward-reference precedent). Added shadcn `dropdown-menu`/`label` components. Removed `src/lib/mock-data.ts`, which became fully orphaned once this was the last file importing its `currentUser` export. Added a Playwright auth-setup project (`e2e/auth.setup.ts`, seeded demo user, storageState reused by the `chromium` project) since `/dashboard` has been proxy-protected since Phase 1 and the existing dashboard specs needed to authenticate first; also fixed a `nativeButton` console warning the e2e run surfaced from rendering a `Button` as a `Link`. Verified live in a browser: custom sign-in/register pages, register validation (mismatch + success), credentials and GitHub sign-in, sidebar dropdown sign-out, and the footer reflecting the real user after login. `npm run build`, `npm run lint`, and `npm run test:e2e` (5/5) all pass. Hit repeated transient Turbopack dev-mode "React Client Manifest" errors during manual testing — confirmed via retries and a `.next` cache wipe to be pre-existing dev-server flakiness, not caused by this change. Note: the spec's Testing section says "avatar shows in top bar," but the Requirements section explicitly places it in the sidebar footer; implemented per Requirements and left `TopBar.tsx` untouched.
