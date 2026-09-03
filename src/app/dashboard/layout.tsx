@@ -1,3 +1,4 @@
+import { auth } from "@/auth";
 import { DashboardSidebar } from "@/components/dashboard/DashboardSidebar";
 import { TopBar } from "@/components/dashboard/TopBar";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
@@ -9,8 +10,14 @@ export default async function DashboardLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const [itemTypes, { favorites: favoriteCollections, recent: recentCollections }] =
-    await Promise.all([getSystemItemTypesWithCounts(), getSidebarCollections()]);
+  const [session, itemTypes, { favorites: favoriteCollections, recent: recentCollections }] =
+    await Promise.all([auth(), getSystemItemTypesWithCounts(), getSidebarCollections()]);
+
+  const user = {
+    name: session?.user?.name ?? "Unknown",
+    email: session?.user?.email ?? "",
+    image: session?.user?.image ?? null,
+  };
 
   return (
     <SidebarProvider className="min-h-full flex-1">
@@ -18,6 +25,7 @@ export default async function DashboardLayout({
         itemTypes={itemTypes}
         favoriteCollections={favoriteCollections}
         recentCollections={recentCollections}
+        user={user}
       />
       <SidebarInset>
         <TopBar />

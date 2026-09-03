@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ChevronDown, Settings, Star } from "lucide-react";
+import { ChevronDown, LogOut, Settings, Star } from "lucide-react";
 
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { signOutAction } from "@/actions/auth";
+import { UserAvatar } from "@/components/auth/UserAvatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,6 +13,12 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Sidebar,
   SidebarContent,
@@ -27,7 +34,6 @@ import {
 import { TYPE_ICONS } from "@/components/dashboard/type-icons";
 import type { CollectionWithStats } from "@/lib/db/collections";
 import type { ItemTypeWithCount } from "@/lib/db/items";
-import { currentUser } from "@/lib/mock-data";
 
 function typeSlug(name: string) {
   return `${name.toLowerCase()}s`;
@@ -39,24 +45,22 @@ function capitalize(name: string) {
 
 const PRO_ITEM_TYPES = new Set(["file", "image"]);
 
-function initials(name: string) {
-  return name
-    .split(" ")
-    .map((part) => part[0])
-    .join("")
-    .toUpperCase();
-}
-
 interface DashboardSidebarProps {
   itemTypes: ItemTypeWithCount[];
   favoriteCollections: CollectionWithStats[];
   recentCollections: CollectionWithStats[];
+  user: {
+    name: string;
+    email: string;
+    image: string | null;
+  };
 }
 
 export function DashboardSidebar({
   itemTypes,
   favoriteCollections,
   recentCollections,
+  user,
 }: DashboardSidebarProps) {
   const pathname = usePathname();
 
@@ -187,22 +191,37 @@ export function DashboardSidebar({
 
       <SidebarFooter>
         <div className="flex items-center gap-2 rounded-md p-2 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-0">
-          <Avatar size="sm">
-            <AvatarFallback>{initials(currentUser.name)}</AvatarFallback>
-          </Avatar>
-          <div className="flex min-w-0 flex-1 flex-col group-data-[collapsible=icon]:hidden">
-            <span className="truncate text-sm font-medium">{currentUser.name}</span>
-            <span className="truncate text-xs text-sidebar-foreground/60">
-              {currentUser.email}
-            </span>
-          </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              render={
+                <button
+                  type="button"
+                  className="flex min-w-0 flex-1 items-center gap-2 rounded-md text-left outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+                />
+              }
+            >
+              <UserAvatar name={user.name} image={user.image} size="sm" />
+              <div className="flex min-w-0 flex-1 flex-col group-data-[collapsible=icon]:hidden">
+                <span className="truncate text-sm font-medium">{user.name}</span>
+                <span className="truncate text-xs text-sidebar-foreground/60">{user.email}</span>
+              </div>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent side="top" align="start">
+              <DropdownMenuItem onClick={() => signOutAction()}>
+                <LogOut />
+                Sign out
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <Button
             variant="ghost"
             size="icon-sm"
             className="shrink-0 group-data-[collapsible=icon]:hidden"
+            render={<Link href="/profile" />}
+            nativeButton={false}
           >
             <Settings />
-            <span className="sr-only">Settings</span>
+            <span className="sr-only">Profile</span>
           </Button>
         </div>
       </SidebarFooter>
