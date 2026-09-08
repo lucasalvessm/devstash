@@ -1,12 +1,27 @@
-# Current Feature
+# Current Feature: Toggle Email Verification
 
 ## Status
 
-<!-- Not Started|In Progress|Completed -->
+In Progress
 
 ## Goals
 
+- Add an easy way to disable the email verification system end-to-end (no verification email sent on register, verification not required to sign in).
+- Default should work with the current no-custom-domain Resend setup — i.e. it should be easy to turn verification OFF in dev/most environments, and ON only where a verified sending domain exists.
+- No changes to already-verified users or the GitHub OAuth auto-verify behavior.
+- Toggle should be trivial to flip (env var, unless a better option surfaces during implementation).
+
 ## Notes
+
+- Root cause: no custom domain is verified in Resend yet, so Resend's sandbox can only deliver to the account's own address. Other registrants currently get a user created but never receive a real verification email (send failure is logged, not fatal, per the existing feature history).
+- Verification is already tracked but not enforced today — the `Credentials` `authorize()` never checks `emailVerified` at all, so unverified users can already sign in (confirmed by reading `src/auth.ts`). This flag doesn't need to touch sign-in gating; it only needs to control whether the *system* (token creation + email send + register/sign-in copy) runs at all.
+- Codebase has no central env-var validation module (`src/lib/env.ts` doesn't exist) — `RESEND_API_KEY`/`DATABASE_URL`/etc. are all read ad hoc via `process.env.X`. Following that convention rather than introducing a new pattern.
+- **Design decision:** env var `EMAIL_VERIFICATION_ENABLED`, read as `process.env.EMAIL_VERIFICATION_ENABLED !== "false"` (defaults to **enabled** when unset, so behavior doesn't silently change wherever the var isn't set — set it to `"false"` explicitly in `.env` to disable, e.g. right now since there's no verified Resend domain). Expose as a single exported boolean, likely from `src/lib/verification-token.ts` (or a small new home if that feels cleaner during implementation), imported by both touch points below.
+- Touch points:
+  - `src/app/api/auth/register/route.ts` — when disabled, skip `createVerificationToken`/`sendVerificationEmail` and set `emailVerified: new Date()` directly on `prisma.user.create` so accounts are pre-verified.
+  - `src/app/sign-in/page.tsx` — it's a server component (`async function SignInPage`), so it can read the same flag directly (no client/env plumbing needed) to branch the `?registered=1` copy: "Check your email to verify your account." (enabled) vs. "Account created! You can sign in now." (disabled).
+  - `src/app/api/auth/verify-email/route.ts` and `src/auth.ts`'s GitHub `signIn` callback are unaffected — no changes needed there.
+- No `.env.example` exists in the repo; will flag to the user that they need to add `EMAIL_VERIFICATION_ENABLED="false"` to their own `.env` (won't edit `.env` directly since it holds live secrets — that's a manual step for them, or ask first).
 
 ## History
 

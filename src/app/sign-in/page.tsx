@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { emailVerificationEnabled } from "@/lib/verification-token";
 
 const ERROR_MESSAGES: Record<string, string> = {
   CredentialsSignin: "Invalid email or password.",
@@ -23,7 +24,9 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
   const infoMessage = verified
     ? "Email verified — you can now sign in."
     : registered
-      ? "Account created! Check your email to verify your account."
+      ? emailVerificationEnabled
+        ? "Account created! Check your email to verify your account."
+        : "Account created! You can sign in now."
       : null;
 
   return (
