@@ -9,15 +9,22 @@ import { Label } from "@/components/ui/label";
 const ERROR_MESSAGES: Record<string, string> = {
   CredentialsSignin: "Invalid email or password.",
   OAuthAccountNotLinked: "This email is already associated with a different sign-in method.",
+  InvalidToken: "That verification link is invalid.",
+  TokenExpired: "That verification link has expired. Register again to get a new one.",
 };
 
 interface SignInPageProps {
-  searchParams: Promise<{ error?: string; callbackUrl?: string }>;
+  searchParams: Promise<{ error?: string; callbackUrl?: string; registered?: string; verified?: string }>;
 }
 
 export default async function SignInPage({ searchParams }: SignInPageProps) {
-  const { error, callbackUrl } = await searchParams;
+  const { error, callbackUrl, registered, verified } = await searchParams;
   const errorMessage = error ? (ERROR_MESSAGES[error] ?? "Something went wrong. Please try again.") : null;
+  const infoMessage = verified
+    ? "Email verified — you can now sign in."
+    : registered
+      ? "Account created! Check your email to verify your account."
+      : null;
 
   return (
     <div className="flex min-h-screen items-center justify-center p-4">
@@ -29,6 +36,11 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
         <CardContent className="flex flex-col gap-4">
           {errorMessage && (
             <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">{errorMessage}</p>
+          )}
+          {!errorMessage && infoMessage && (
+            <p className="rounded-md bg-emerald-500/10 px-3 py-2 text-sm text-emerald-600 dark:text-emerald-400">
+              {infoMessage}
+            </p>
           )}
 
           <form action={signInWithGitHub}>

@@ -1,12 +1,27 @@
-# Current Feature
+# Current Feature: Email Verification on Register
 
 ## Status
 
-<!-- Not Started|In Progress|Completed -->
+In Progress
 
 ## Goals
 
+- After a user registers via email/password, they receive an email with a verification link
+- Clicking the link marks the account as verified (`User.emailVerified`) and lands them somewhere sensible (sign-in page with a success message)
+- Verification emails are sent via Resend (`RESEND_API_KEY` already in `.env`)
+- Expired or invalid verification links show a clear error, not a crash
+- GitHub OAuth users are treated as already verified (GitHub itself verifies emails) — no action needed from them
+
 ## Notes
+
+- `User.emailVerified DateTime?` already exists on the Prisma schema and is currently unused — no migration needed for that field.
+- `VerificationToken` (identifier/token/expires, NextAuth's standard model) already exists and is currently unused — plan is to reuse it for verification tokens (`identifier` = user email, `token` = random string, `expires` = e.g. now + 24h) rather than adding a new model.
+- `resend` is not yet an installed dependency — needs adding.
+- Proposed flow:
+  1. `POST /api/auth/register` (existing route) — after creating the user, generate a token, store it in `VerificationToken`, send the verification email via Resend with a link like `/api/auth/verify-email?token=...`.
+  2. New `GET /api/auth/verify-email` route — looks up the token, checks expiry, sets `user.emailVerified = now()`, deletes the token, redirects to `/sign-in` with a success indicator (or an error indicator if invalid/expired).
+- Open question (default chosen below, override before `/feature start` if you disagree): should unverified users be **blocked** from signing in with credentials until verified? Default: **no**, not blocking for now — keeps friction low during dev-mode, matches "leave all features unlocked" spirit from the project spec. Verification is tracked but not enforced yet.
+- Out of scope unless you want it added: "resend verification email" link/button on the sign-in page for users who lost the original email.
 
 ## History
 

@@ -3,6 +3,8 @@ import bcrypt from "bcryptjs";
 import { z } from "zod";
 
 import { prisma } from "@/lib/prisma";
+import { createVerificationToken } from "@/lib/verification-token";
+import { sendVerificationEmail } from "@/lib/verification-email";
 
 const registerSchema = z
   .object({
@@ -49,6 +51,15 @@ export async function POST(request: Request) {
     data: { name, email, password: hashedPassword },
     select: { id: true, name: true, email: true },
   });
+
+  const token = await createVerificationToken(email);
+  const verifyUrl = new URL(`/api/auth/verify-email?token=${token}`, request.url).toString();
+
+  try {
+    await sendVerificationEmail({ to: email, verifyUrl });
+  } catch (error) {
+    console.error("Failed to send verification email:", error);
+  }
 
   return NextResponse.json({ success: true, data: user }, { status: 201 });
 }
