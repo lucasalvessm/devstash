@@ -1,12 +1,26 @@
-# Current Feature
+# Current Feature: Forgot Password
 
 ## Status
 
-<!-- Not Started|In Progress|Completed -->
+In Progress
 
 ## Goals
 
+- A "Forgot password?" link on `/sign-in` leading to a new page where the user enters their email.
+- Submitting sends a password-reset email (reusing the existing Resend pattern) with a link containing a reset token.
+- A reset page where the user sets a new password (with confirmation), which validates the token (exists, not expired), updates the user's hashed password, and invalidates the token afterward.
+- The "request a reset" response must not reveal whether an email exists in the system — show the same generic message either way.
+- After a successful reset, land the user back at `/sign-in` with a clear success message.
+
 ## Notes
+
+- Reuse the existing `VerificationToken` model (`prisma/schema.prisma:79`) for reset tokens, per the request — but it has no "purpose" field: it's keyed only by `identifier` (the email) + a unique `token`. `createVerificationToken(email)` (`src/lib/verification-token.ts`) deletes ALL existing tokens for that identifier before creating a new one, so requesting a password reset would silently invalidate a pending email-verification token for the same address (and vice versa). Decide during implementation whether that collision is acceptable (the two flows rarely overlap in practice) or whether reset tokens need a distinguishing prefix on `identifier` (e.g. `reset:email@...`) so the two flows' "clear prior tokens" steps don't stomp on each other. Note that `verify-email/route.ts` looks up by `token` (globally unique) rather than `identifier`, so reading back a token isn't ambiguous — only the invalidate-on-create step is the actual collision risk.
+- Existing patterns to reuse: `src/lib/resend.ts` (Resend client singleton) and `src/lib/verification-email.ts` (`sendVerificationEmail`, HTML email via Resend). Important: `resend.emails.send` returns `{ data, error }` rather than throwing on API failures — must check `error` explicitly and throw (see the just-completed "Surface Verification Email Send Failures" fix for the same gotcha), so any new reset-email sender should follow that same explicit-check pattern from the start rather than repeating the original bug.
+- Existing pattern to reuse: `src/app/api/auth/verify-email/route.ts` (GET handler validating a token, checking expiry, redirecting with `?error=InvalidToken`/`TokenExpired`) — the new reset-token validation can follow a similar shape, though the reset flow likely needs a page (to collect the new password) rather than a redirect-only GET handler.
+- Password hashing: `bcryptjs` at 12 rounds, matching `src/app/api/auth/register/route.ts` and the `bcrypt.compare` check in `src/auth.ts`.
+- UI patterns: `/sign-in` (`src/app/sign-in/page.tsx`, server component reading success/error banners from `searchParams`) and `/register` (`src/app/register/page.tsx`, client component posting JSON to an API route, client-side password-match check). Add the "Forgot password?" link near the password field on `/sign-in`.
+- `User.password` is nullable (GitHub OAuth users have none) — decide how a reset request for a GitHub-only account should behave; the "don't reveal whether an email exists" goal suggests responding with the same generic message regardless, rather than erroring differently for OAuth-only accounts.
+- No rate limiting exists anywhere in the app yet — out of scope unless asked.
 
 ## History
 

@@ -21,11 +21,12 @@ interface SignInPageProps {
     registered?: string;
     verified?: string;
     emailDeliveryFailed?: string;
+    reset?: string;
   }>;
 }
 
 export default async function SignInPage({ searchParams }: SignInPageProps) {
-  const { error, callbackUrl, registered, verified, emailDeliveryFailed } = await searchParams;
+  const { error, callbackUrl, registered, verified, emailDeliveryFailed, reset } = await searchParams;
   const errorMessage = error ? (ERROR_MESSAGES[error] ?? "Something went wrong. Please try again.") : null;
   const warningMessage =
     registered && emailDeliveryFailed
@@ -33,13 +34,15 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
       : null;
   const infoMessage = warningMessage
     ? null
-    : verified
-      ? "Email verified — you can now sign in."
-      : registered
-        ? emailVerificationEnabled
-          ? "Account created! Check your email to verify your account."
-          : "Account created! You can sign in now."
-        : null;
+    : reset
+      ? "Password reset — you can now sign in with your new password."
+      : verified
+        ? "Email verified — you can now sign in."
+        : registered
+          ? emailVerificationEnabled
+            ? "Account created! Check your email to verify your account."
+            : "Account created! You can sign in now."
+          : null;
 
   return (
     <div className="flex min-h-screen items-center justify-center p-4">
@@ -83,7 +86,15 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
               <Input id="email" name="email" type="email" required autoComplete="email" />
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="password">Password</Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="password">Password</Label>
+                <Link
+                  href="/forgot-password"
+                  className="text-xs text-muted-foreground underline underline-offset-4"
+                >
+                  Forgot password?
+                </Link>
+              </div>
               <Input id="password" name="password" type="password" required autoComplete="current-password" />
             </div>
             <Button type="submit" className="w-full">
