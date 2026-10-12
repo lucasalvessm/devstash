@@ -38,7 +38,7 @@ export default function RegisterPage() {
         return;
       }
 
-      router.push("/sign-in?registered=1");
+      router.push(data.emailDeliveryFailed ? "/sign-in?registered=1&emailDeliveryFailed=1" : "/sign-in?registered=1");
     } catch {
       setError("Something went wrong. Please try again.");
     } finally {

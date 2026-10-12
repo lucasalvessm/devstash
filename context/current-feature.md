@@ -1,12 +1,21 @@
-# Current Feature
+# Current Feature: Surface Verification Email Send Failures
 
 ## Status
 
-<!-- Not Started|In Progress|Completed -->
+In Progress
 
 ## Goals
 
+- When the verification email fails to send during registration (e.g. Resend's 403 `validation_error` for non-account recipients while no domain is verified), the user must be told — not just a silent server-side `console.error`.
+- The registered account should still be created (unchanged) — this is about feedback, not blocking registration.
+- User should come away from the register flow understanding that verification didn't happen and needing a way forward (e.g. contact an admin, or know verification isn't required in this environment).
+
 ## Notes
+
+- Reported bug (user's own words, pt-BR): with `EMAIL_VERIFICATION_ENABLED` on, registering with an email Resend's sandbox won't deliver to (anything but the account owner's own address, `lucasalvessm@outlook.com`) throws a `403 validation_error` from `resend.emails.send`. `src/app/api/auth/register/route.ts` currently wraps that call in try/catch and only `console.error`s — the HTTP response still returns `{ success: true }` and the user is redirected to `/sign-in?registered=1` telling them to "check your email," even though no email was ever sent and none ever will be.
+- Root cause is the same Resend sandbox limitation from the "Email Verification on Register" and "Toggle Email Verification" features — no custom sending domain verified yet. This bug is about the case where verification is left ON despite that limitation (e.g. someone forgets to set `EMAIL_VERIFICATION_ENABLED=false`, or registers with an email other than the Resend account owner's while testing).
+- Relevant files: `src/app/api/auth/register/route.ts` (swallows the send error today), `src/lib/verification-email.ts` (`sendVerificationEmail`, throws on Resend API errors), `src/app/sign-in/page.tsx` (renders the `?registered=1` banner, already branches on `emailVerificationEnabled` from the previous feature).
+- Approach to design during implementation: have the register route track whether the send actually succeeded and surface that to the client (e.g. an `emailDeliveryFailed` flag in the JSON response), have `/register`'s client-side redirect forward that as a query param, and have `/sign-in` show a distinct warning banner ("Account created, but we couldn't send your verification email — contact support") instead of the misleading "check your email" copy.
 
 ## History
 

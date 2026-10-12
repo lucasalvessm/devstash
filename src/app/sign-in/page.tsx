@@ -15,19 +15,31 @@ const ERROR_MESSAGES: Record<string, string> = {
 };
 
 interface SignInPageProps {
-  searchParams: Promise<{ error?: string; callbackUrl?: string; registered?: string; verified?: string }>;
+  searchParams: Promise<{
+    error?: string;
+    callbackUrl?: string;
+    registered?: string;
+    verified?: string;
+    emailDeliveryFailed?: string;
+  }>;
 }
 
 export default async function SignInPage({ searchParams }: SignInPageProps) {
-  const { error, callbackUrl, registered, verified } = await searchParams;
+  const { error, callbackUrl, registered, verified, emailDeliveryFailed } = await searchParams;
   const errorMessage = error ? (ERROR_MESSAGES[error] ?? "Something went wrong. Please try again.") : null;
-  const infoMessage = verified
-    ? "Email verified — you can now sign in."
-    : registered
-      ? emailVerificationEnabled
-        ? "Account created! Check your email to verify your account."
-        : "Account created! You can sign in now."
+  const warningMessage =
+    registered && emailDeliveryFailed
+      ? "Account created, but we couldn't send your verification email. Contact support, or sign in now if verification isn't required."
       : null;
+  const infoMessage = warningMessage
+    ? null
+    : verified
+      ? "Email verified — you can now sign in."
+      : registered
+        ? emailVerificationEnabled
+          ? "Account created! Check your email to verify your account."
+          : "Account created! You can sign in now."
+        : null;
 
   return (
     <div className="flex min-h-screen items-center justify-center p-4">
@@ -39,6 +51,11 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
         <CardContent className="flex flex-col gap-4">
           {errorMessage && (
             <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">{errorMessage}</p>
+          )}
+          {!errorMessage && warningMessage && (
+            <p className="rounded-md bg-amber-500/10 px-3 py-2 text-sm text-amber-600 dark:text-amber-400">
+              {warningMessage}
+            </p>
           )}
           {!errorMessage && infoMessage && (
             <p className="rounded-md bg-emerald-500/10 px-3 py-2 text-sm text-emerald-600 dark:text-emerald-400">

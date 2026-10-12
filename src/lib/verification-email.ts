@@ -6,7 +6,7 @@ interface SendVerificationEmailParams {
 }
 
 export async function sendVerificationEmail({ to, verifyUrl }: SendVerificationEmailParams) {
-  await resend.emails.send({
+  const { error } = await resend.emails.send({
     from: "DevStash <onboarding@resend.dev>",
     to,
     subject: "Verify your email for DevStash",
@@ -16,4 +16,8 @@ export async function sendVerificationEmail({ to, verifyUrl }: SendVerificationE
       <p>This link expires in 24 hours. If you didn't create this account, you can ignore this email.</p>
     `,
   });
+
+  if (error) {
+    throw new Error(`${error.name}: ${error.message}`);
+  }
 }

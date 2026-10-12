@@ -57,6 +57,8 @@ export async function POST(request: Request) {
     select: { id: true, name: true, email: true },
   });
 
+  let emailDeliveryFailed = false;
+
   if (emailVerificationEnabled) {
     const token = await createVerificationToken(email);
     const verifyUrl = new URL(`/api/auth/verify-email?token=${token}`, request.url).toString();
@@ -65,8 +67,9 @@ export async function POST(request: Request) {
       await sendVerificationEmail({ to: email, verifyUrl });
     } catch (error) {
       console.error("Failed to send verification email:", error);
+      emailDeliveryFailed = true;
     }
   }
 
-  return NextResponse.json({ success: true, data: user }, { status: 201 });
+  return NextResponse.json({ success: true, data: user, emailDeliveryFailed }, { status: 201 });
 }
