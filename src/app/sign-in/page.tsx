@@ -12,7 +12,7 @@ const ERROR_MESSAGES: Record<string, string> = {
   CredentialsSignin: "Invalid email or password.",
   OAuthAccountNotLinked: "This email is already associated with a different sign-in method.",
   InvalidToken: "That verification link is invalid.",
-  TokenExpired: "That verification link has expired. Register again to get a new one.",
+  TokenExpired: "That verification link has expired.",
 };
 
 interface SignInPageProps {
@@ -54,6 +54,16 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
             ? "Account created! Check your email to verify your account."
             : "Account created! You can sign in now."
           : null;
+  // Only on the post-registration banners (delivery-failed warning or "check your email").
+  const showResendLink = emailVerificationEnabled && Boolean(registered) && !reset && !verified;
+  const resendLink = showResendLink ? (
+    <>
+      {" "}
+      <Link href="/resend-verification" className="underline underline-offset-4">
+        Resend verification email
+      </Link>
+    </>
+  ) : null;
 
   return (
     <div className="flex min-h-screen items-center justify-center p-4">
@@ -64,16 +74,28 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
           {errorMessage && (
-            <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">{errorMessage}</p>
+            <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+              {errorMessage}
+              {error === "TokenExpired" && emailVerificationEnabled && (
+                <>
+                  {" "}
+                  <Link href="/resend-verification" className="underline underline-offset-4">
+                    Request a new one
+                  </Link>
+                </>
+              )}
+            </p>
           )}
           {!errorMessage && warningMessage && (
             <p className="rounded-md bg-amber-500/10 px-3 py-2 text-sm text-amber-600 dark:text-amber-400">
               {warningMessage}
+              {resendLink}
             </p>
           )}
           {!errorMessage && infoMessage && (
             <p className="rounded-md bg-emerald-500/10 px-3 py-2 text-sm text-emerald-600 dark:text-emerald-400">
               {infoMessage}
+              {resendLink}
             </p>
           )}
 

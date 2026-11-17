@@ -1,12 +1,31 @@
-# Current Feature
+# Current Feature: Resend Verification Email
 
 ## Status
 
 <!-- Not Started|In Progress|Completed -->
 
+Completed
+
 ## Goals
 
+- Add `POST /api/auth/resend-verification` taking `{ email }` (Zod `z.email()`); malformed JSON returns 400 (same pattern as `forgot-password/route.ts`)
+- Always return the same generic 200 response (`"If an unverified account exists for that email, we've sent a new verification link."`), so the response never reveals whether an account exists
+- Only send when the user exists, has a password (credentials account), and `emailVerified` is null
+- Reuse `createVerificationToken` (invalidates prior tokens) and `sendVerificationEmail`; build `verifyUrl` the same way as the register route
+- Log send failures without changing the response
+- No-op returning the generic message when `emailVerificationEnabled` is false
+- Rate limit: 3 attempts / 15 min keyed by IP + email via `src/lib/rate-limit.ts`; 429 + `Retry-After` + `"Too many attempts. Please try again in X minutes."`; fail open
+- Add a `/resend-verification` page (email form, inline success/error/429 display, matching `/forgot-password`)
+- Link to `/resend-verification` from `/sign-in`'s `emailDeliveryFailed` amber banner and `registered=1` "check your email" banner; hide the link when `emailVerificationEnabled` is false
+
 ## Notes
+
+- Spec: `context/features/resend-verification-spec.md`
+- Depends on Rate Limiting for Auth (already shipped, so `rate-limit.ts` exists)
+- Rate-limit key is IP + email, so the body has to be parsed before the check. That differs from the other API routes, which check before parsing.
+- Same timing side-channel caveat as forgot-password: only real unverified accounts incur the Resend round-trip
+- Resend sandbox only delivers to the account owner's address until a custom domain is verified
+- Out of scope: enforcing email verification at sign-in (still tracked, not enforced)
 
 ## History
 

@@ -12,6 +12,7 @@ export const RATE_LIMITS = {
   register: { limit: 3, window: "1 h" },
   forgotPassword: { limit: 3, window: "1 h" },
   resetPassword: { limit: 5, window: "15 m" },
+  resendVerification: { limit: 3, window: "15 m" },
 } satisfies Record<string, RateLimitConfig>;
 
 export type RateLimitName = keyof typeof RATE_LIMITS;
