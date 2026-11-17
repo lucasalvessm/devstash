@@ -15,7 +15,8 @@
       "Bash(node scripts/test-db.ts)",
       "Bash(nohup npm run dev)",
       "Bash(disown)",
-      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:3000/dashboard)"
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:3000/dashboard)",
+      "mcp__neon__list_projects"
     ]
   }
 }

@@ -172,136 +172,11 @@ erDiagram
     }
 ```
 
-### Prisma Schema (draft)
+### Prisma Schema
 
-> Rough draft — not final. Adjust cascade rules, indexes, and constraints as the schema stabilizes. Remember: **never use `db push`** — all schema changes go through migrations, run in dev, then promoted to prod.
+> The schema has moved past the draft stage — `prisma/schema.prisma` is now the source of truth (snake_case `@map`/`@@map` columns, `generator` using `prisma-client` with an output path, connection URL in `prisma.config.ts` rather than inline, an explicit `ItemTag` join model instead of an implicit `Tag[]` relation, plus `User.password`/`emailVerified` and NextAuth's `Account`/`Session`/`VerificationToken` models). Read that file directly instead of this doc for exact field names. Remember: **never use `db push`** — all schema changes go through migrations, run in dev, then promoted to prod.
 
-```prisma
-// schema.prisma
-// Datasource: Neon (PostgreSQL) — Prisma 7
-
-generator client {
-  provider = "prisma-client-js"
-}
-
-datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
-}
-
-enum ContentType {
-  TEXT
-  URL
-  FILE
-}
-
-model User {
-  id                   String   @id @default(cuid())
-  email                String   @unique
-  name                 String?
-  image                String?
-
-  isPro                Boolean  @default(false)
-  stripeCustomerId     String?  @unique
-  stripeSubscriptionId String?  @unique
-
-  items                Item[]
-  collections          Collection[]
-  itemTypes            ItemType[]   // custom types only
-
-  createdAt            DateTime @default(now())
-  updatedAt            DateTime @updatedAt
-
-  // ...NextAuth required relations (Account, Session)
-}
-
-model ItemType {
-  id       String  @id @default(cuid())
-  name     String
-  icon     String
-  color    String
-  isSystem Boolean @default(false)
-
-  userId   String?           // null for system types
-  user     User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  items    Item[]
-
-  @@unique([userId, name])
-}
-
-model Item {
-  id            String      @id @default(cuid())
-  title         String
-  description   String?
-
-  contentType   ContentType
-  content       String?     // text content (snippet/prompt/note/command)
-  url           String?     // for link type
-  fileUrl       String?     // R2 URL for file/image
-  fileName      String?
-  fileSize      Int?
-
-  language      String?     // optional, for syntax highlighting
-
-  isFavorite    Boolean     @default(false)
-  isPinned      Boolean     @default(false)
-
-  userId        String
-  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  itemTypeId    String
-  itemType      ItemType    @relation(fields: [itemTypeId], references: [id])
-
-  collections   ItemCollection[]
-  tags          Tag[]       @relation("ItemTags")
-
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
-
-  @@index([userId])
-  @@index([itemTypeId])
-}
-
-model Collection {
-  id            String   @id @default(cuid())
-  name          String
-  description   String?
-  isFavorite    Boolean  @default(false)
-
-  defaultTypeId String?  // ItemType id used when creating new items in this collection
-
-  userId        String
-  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  items         ItemCollection[]
-
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-
-  @@index([userId])
-}
-
-model ItemCollection {
-  itemId       String
-  collectionId String
-  addedAt      DateTime   @default(now())
-
-  item         Item       @relation(fields: [itemId], references: [id], onDelete: Cascade)
-  collection   Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
-
-  @@id([itemId, collectionId])
-  @@index([collectionId])
-}
-
-model Tag {
-  id    String @id @default(cuid())
-  name  String @unique
-  items Item[] @relation("ItemTags")
-}
-```
-
-**Open questions to resolve before finalizing the schema:**
+**Open questions still unresolved (as of the schema in `prisma/schema.prisma`):**
 - Should `Tag` be per-user or global (currently drafted as global/unique across all users — likely needs a `userId` scope)?
 - Does `Item.contentType` duplicate info already implied by `ItemType`? Consider deriving it instead of storing both.
 - File size limits and validation for free vs. Pro tiers.
@@ -318,10 +193,11 @@ model Tag {
 | Database | Neon (PostgreSQL) |
 | ORM | Prisma 7 (latest — verify docs before implementation) |
 | Caching | Redis (maybe — evaluate need before adding) |
-| File Storage | Cloudflare R2 |
+| File Storage | Cloudflare R2 *(planned — not yet integrated)* |
 | Auth | NextAuth v5 (email/password + GitHub OAuth) |
-| AI | OpenAI `gpt-5-nano` |
-| Styling | Tailwind CSS v4 + shadcn/ui |
+| Email | Resend (verification + password reset emails) |
+| AI | OpenAI `gpt-5-nano` *(planned — not yet integrated)* |
+| Styling | Tailwind CSS v4 + shadcn/ui (+ `@base-ui/react` primitives) |
 
 **Repo structure:** single codebase / monorepo-free — one Next.js app for frontend + API to minimize overhead.
 
