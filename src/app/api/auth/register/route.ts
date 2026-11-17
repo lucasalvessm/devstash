@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import { z } from "zod";
 
 import { prisma } from "@/lib/prisma";
+import { checkRateLimit, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
 import { createVerificationToken, emailVerificationEnabled } from "@/lib/verification-token";
 import { sendVerificationEmail } from "@/lib/verification-email";
 
@@ -19,6 +20,11 @@ const registerSchema = z
   });
 
 export async function POST(request: Request) {
+  const rateLimit = await checkRateLimit("register", getClientIp(request.headers));
+  if (!rateLimit.success) {
+    return rateLimitResponse(rateLimit.reset);
+  }
+
   let body: unknown;
   try {
     body = await request.json();

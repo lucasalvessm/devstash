@@ -1,12 +1,34 @@
-# Current Feature
+# Current Feature: Rate Limiting for Auth
 
 ## Status
 
 <!-- Not Started|In Progress|Completed -->
 
+In Progress
+
 ## Goals
 
+- Add a reusable `src/lib/rate-limit.ts` utility using Upstash Redis + `@upstash/ratelimit` (sliding window), returning `{ success, remaining, reset }`
+- Extract client IP from `x-forwarded-for` (Vercel) with a fallback; combine IP + email as the key where applicable
+- Rate limit auth endpoints:
+  - Credentials login — 5 attempts / 15 min, keyed by IP + email
+  - `POST /api/auth/register` — 3 / 1 hour, keyed by IP
+  - `POST /api/auth/forgot-password` — 3 / 1 hour, keyed by IP
+  - `POST /api/auth/reset-password` — 5 / 15 min, keyed by IP
+- Return 429 with `{ error: "Too many attempts. Please try again in X minutes." }` and a `Retry-After` header
+- Show a user-friendly error on the frontend, inline in each auth form (the spec says toast; see Notes)
+- Fail open (allow the request) if Upstash is unavailable or unconfigured
+- New env vars: `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`
+
 ## Notes
+
+- Spec: @context/features/rate-limiting-spec.md
+- **Login has two entry points, each limited once (shared `checkLoginRateLimit`, keyed IP + email):** the `/sign-in` UI calls the `signInWithCredentials` server action (`src/actions/auth.ts`), which checks before `signIn()` and redirects to `/sign-in?error=RateLimited&retryAfter=N`. Direct POSTs to `/api/auth/callback/credentials` bypass the action, so `src/app/api/auth/[...nextauth]/route.ts` wraps NextAuth's `POST` and returns a real 429 + `Retry-After`. The check deliberately isn't in `authorize`, since the route-level check would make direct POSTs count twice.
+- Resend-verification deferred to a future feature — see @context/features/resend-verification-spec.md (includes its rate limit).
+- **No toast library is installed** (no `sonner`/toast usage in `src/`). Decision: reuse each auth form's existing inline error display for 429 messages instead of toasts (no new dependency).
+- Branched from `main` (not `chore/cleanup`, whose unmerged commit d145021 stays there).
+- Installed `@upstash/ratelimit` + `@upstash/redis` (API verified via Context7). Upstash credentials are set in `.env`.
+- Known limitations: `x-forwarded-for` is only trustworthy behind Vercel's edge; the login limit counts successful sign-ins too (per spec's "attempts"); `e2e/auth.setup.ts` signs in as the demo user each run, so more than 5 e2e runs in 15 min locally will hit the limit.
 
 ## History
 

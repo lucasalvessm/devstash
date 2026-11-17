@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { formatRateLimitMessage } from "@/lib/rate-limit";
 import { emailVerificationEnabled } from "@/lib/verification-token";
 
 const ERROR_MESSAGES: Record<string, string> = {
@@ -22,12 +23,22 @@ interface SignInPageProps {
     verified?: string;
     emailDeliveryFailed?: string;
     reset?: string;
+    retryAfter?: string;
   }>;
 }
 
+function getErrorMessage(error: string | undefined, retryAfter: string | undefined): string | null {
+  if (!error) return null;
+  if (error === "RateLimited") {
+    const minutes = Number.parseInt(retryAfter ?? "", 10);
+    return formatRateLimitMessage(Number.isFinite(minutes) && minutes > 0 ? minutes : 15);
+  }
+  return ERROR_MESSAGES[error] ?? "Something went wrong. Please try again.";
+}
+
 export default async function SignInPage({ searchParams }: SignInPageProps) {
-  const { error, callbackUrl, registered, verified, emailDeliveryFailed, reset } = await searchParams;
-  const errorMessage = error ? (ERROR_MESSAGES[error] ?? "Something went wrong. Please try again.") : null;
+  const { error, callbackUrl, registered, verified, emailDeliveryFailed, reset, retryAfter } = await searchParams;
+  const errorMessage = getErrorMessage(error, retryAfter);
   const warningMessage =
     registered && emailDeliveryFailed
       ? "Account created, but we couldn't send your verification email. Contact support, or sign in now if verification isn't required."

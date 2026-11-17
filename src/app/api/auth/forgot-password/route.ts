@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { prisma } from "@/lib/prisma";
+import { checkRateLimit, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
 import { createPasswordResetToken } from "@/lib/password-reset-token";
 import { sendPasswordResetEmail } from "@/lib/password-reset-email";
 
@@ -10,6 +11,11 @@ const forgotPasswordSchema = z.object({ email: z.email() });
 const GENERIC_MESSAGE = "If an account exists for that email, we've sent a password reset link.";
 
 export async function POST(request: Request) {
+  const rateLimit = await checkRateLimit("forgotPassword", getClientIp(request.headers));
+  if (!rateLimit.success) {
+    return rateLimitResponse(rateLimit.reset);
+  }
+
   let body: unknown;
   try {
     body = await request.json();
