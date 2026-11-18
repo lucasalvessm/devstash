@@ -1,12 +1,23 @@
-# Current Feature
+# Current Feature: Preserve Email on Failed Sign-In
 
 ## Status
 
-<!-- Not Started|In Progress|Completed -->
+In Progress
 
 ## Goals
 
+- When credentials sign-in fails (wrong email/password), `/sign-in` re-renders with the email field still populated
+- The password field is always cleared after a failed attempt
+- Applies to the rate-limited error path too (`?error=RateLimited`), so the user doesn't retype their email after waiting
+- The existing inline error message ("Invalid email or password.") still shows as before
+- `npm run build` and `npm run lint` pass
+
 ## Notes
+
+- Cause: `signInWithCredentials` (`src/actions/auth.ts`) handles failures with `redirect('/sign-in?error=...')`, a full navigation that drops the form state. `/sign-in` is a server component with an uncontrolled `<Input name="email">`.
+- Likely approach: forward the submitted email on the error redirect (e.g. `&email=...`, URL-encoded) and use it as the email input's `defaultValue`; the password is never forwarded, so it's naturally cleared. Keeps the page a server component and the existing redirect-based pattern — no need to convert the form to a client component with `useActionState`.
+- Trade-off: the email appears in the URL/browser history. Acceptable for a sign-in page (the email isn't a secret), but never put the password in the URL.
+- Related pre-existing gap: the error redirects also drop `callbackUrl`, so a user redirected to sign-in from a protected page lands on `/dashboard` after a failed-then-successful attempt. Small, adjacent fix — decide during `start` whether to forward it too.
 
 ## History
 

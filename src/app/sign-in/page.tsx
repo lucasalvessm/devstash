@@ -24,6 +24,7 @@ interface SignInPageProps {
     emailDeliveryFailed?: string;
     reset?: string;
     retryAfter?: string;
+    email?: string;
   }>;
 }
 
@@ -37,7 +38,8 @@ function getErrorMessage(error: string | undefined, retryAfter: string | undefin
 }
 
 export default async function SignInPage({ searchParams }: SignInPageProps) {
-  const { error, callbackUrl, registered, verified, emailDeliveryFailed, reset, retryAfter } = await searchParams;
+  const { error, callbackUrl, registered, verified, emailDeliveryFailed, reset, retryAfter, email } =
+    await searchParams;
   const errorMessage = getErrorMessage(error, retryAfter);
   const warningMessage =
     registered && emailDeliveryFailed
@@ -116,7 +118,14 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
             <input type="hidden" name="callbackUrl" value={callbackUrl ?? ""} />
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="email">Email</Label>
-              <Input id="email" name="email" type="email" required autoComplete="email" />
+              <Input
+                id="email"
+                name="email"
+                type="email"
+                required
+                autoComplete="email"
+                defaultValue={email ?? ""}
+              />
             </div>
             <div className="flex flex-col gap-1.5">
               <div className="flex items-center justify-between">
